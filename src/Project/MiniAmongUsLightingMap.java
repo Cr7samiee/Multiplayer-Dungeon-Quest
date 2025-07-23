@@ -1,13 +1,18 @@
 package Project;
 
+import Project.map.GameMap;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
 
 class MiniAmongUsLightingMap extends JPanel implements KeyListener {
-    int playerX = 300;
-    int playerY = 300;
+    private enum GameState { PLAYING, MAP_VIEW }
+    private GameState gameState = GameState.PLAYING;
+    private GameMap gameMap;
+    private int playerX = 300;
+    private int playerY = 300;
+    private boolean showMiniMap = true;
 
     public MiniAmongUsLightingMap() {
         JFrame frame = new JFrame("Mini Among Us with Lighting and Decorations");
@@ -16,49 +21,64 @@ class MiniAmongUsLightingMap extends JPanel implements KeyListener {
         frame.add(this);
         frame.addKeyListener(this);
         frame.setVisible(true);
+
+        gameMap = new GameMap();
     }
 
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
 
-        // Draw rooms and decorations
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                int x = i * 250 + 50;
-                int y = j * 250 + 50;
-                g2d.setColor(Color.LIGHT_GRAY);
-                g2d.fillRect(x, y, 200, 200);
+        if (gameState == GameState.MAP_VIEW) {
+            // Full map view
+            gameMap.drawFullMap(g2d, new Point(playerX, playerY));
+            g2d.setColor(Color.WHITE);
+            g2d.drawString("Press M to return to game", 300, 30);
+        } else {
+            // Normal game view
+            gameMap.drawFullMap(g2d, new Point(playerX, playerY));
 
-                // Decorate rooms
-                g2d.setColor(Color.ORANGE);
-                g2d.fillRect(x + 50, y + 50, 30, 30); // Example task panel
-                g2d.setColor(Color.BLACK);
-                g2d.drawString("Room " + (i * 3 + j + 1), x + 70, y + 20);
+            // Lighting effect
+            g2d.setColor(new Color(0, 0, 0, 200));
+            g2d.fillRect(0, 0, getWidth(), getHeight());
+
+            RadialGradientPaint light = new RadialGradientPaint(
+                    new Point2D.Double(playerX, playerY), 200,
+                    new float[]{0.0f, 0.8f, 1.0f},
+                    new Color[]{new Color(0, 0, 0, 0),
+                            new Color(0, 0, 0, 0),
+                            new Color(0, 0, 0, 220)});
+            g2d.setPaint(light);
+            g2d.fillRect(0, 0, getWidth(), getHeight());
+
+            // Draw player
+            g2d.setColor(Color.BLUE);
+            g2d.fillOval(playerX - 10, playerY - 10, 20, 20);
+
+            // Draw mini-map if enabled
+            if (showMiniMap) {
+                gameMap.drawMiniMap(g2d, new Point(playerX, playerY), getWidth(), getHeight());
             }
+
+            // Draw controls hint
+            g2d.setColor(Color.WHITE);
+            g2d.drawString("Press M for map view", 10, 20);
         }
-
-        // Dim entire map
-        g2d.setColor(new Color(0, 0, 0, 200));
-        g2d.fillRect(0, 0, getWidth(), getHeight());
-
-        // Radial gradient effect (light around player)
-        float[] dist = {0.0f, 0.8f, 1.0f};
-        Color[] colors = {new Color(0, 0, 0, 0),new Color(0, 0, 0, 0), new Color(0, 0, 0, 220)};
-        RadialGradientPaint light = new RadialGradientPaint(new Point2D.Double(playerX, playerY), 200, dist, colors);
-        g2d.setPaint(light);
-        g2d.fillRect(0, 0, getWidth(), getHeight());
-
-        // Draw player
-        g2d.setColor(Color.BLUE);
-        g2d.fillOval(playerX - 10, playerY - 10, 20, 20);
     }
 
     public void keyPressed(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_LEFT) playerX -= 5;
-        if (e.getKeyCode() == KeyEvent.VK_RIGHT) playerX += 5;
-        if (e.getKeyCode() == KeyEvent.VK_UP) playerY -= 5;
-        if (e.getKeyCode() == KeyEvent.VK_DOWN) playerY += 5;
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_LEFT: playerX -= 5; break;
+            case KeyEvent.VK_RIGHT: playerX += 5; break;
+            case KeyEvent.VK_UP: playerY -= 5; break;
+            case KeyEvent.VK_DOWN: playerY += 5; break;
+            case KeyEvent.VK_M:
+                gameState = (gameState == GameState.PLAYING) ? GameState.MAP_VIEW : GameState.PLAYING;
+                break;
+            case KeyEvent.VK_N:
+                showMiniMap = !showMiniMap;
+                break;
+        }
         repaint();
     }
 
